@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PMs and Stat Testing Schedule</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@0.265.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* Small adjustments for print/pdf */
+    @media print {
+      .no-print { display: none !important; }
+      body { 
+        background-color: #fff !important; 
+        background-image: none !important;
+        padding: 20px !important;
+      }
+      .max-w-7xl { 
+        max-width: 100% !important; 
+        margin: 0 !important;
+      }
+      .bg-gradient-to-br { 
+        background: white !important; 
+      }
+      .shadow-2xl, .shadow-xl, .shadow-md { 
+        box-shadow: none !important; 
+      }
+      .border-t-4, .rounded-xl, .rounded-lg { 
+        border: none !important;
+        border-radius: 0 !important;
+      }
+      /* Print header */
+      .print-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 3px solid #4472C4;
+        padding-bottom: 20px;
+      }
+      .print-logo {
+        display: inline-block !important;
+        max-width: 120px;
+        max-height: 120px;
+        margin-bottom: 10px;
+      }
+      /* Table styling for print */
+      table {
+        page-break-inside: auto;
+        border-collapse: collapse;
+        width: 100%;
+      }
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
+      thead {
+        display: table-header-group;
+      }
+      th {
+        background-color: #4472C4 !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 10px !important;
+        font-size: 11px !important;
+      }
+      td {
+        padding: 8px !important;
+        font-size: 10px !important;
+        border: 1px solid #ddd !important;
+      }
+      /* Status colors for print */
+      .bg-red-100 {
+        background-color: #fee !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .bg-green-100 {
+        background-color: #efe !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .text-red-700 {
+        color: #c00 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .text-green-700 {
+        color: #060 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+    /* Ensure small font and monospace for dates */
+    .small-pt { font-size: 12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Helvetica Neue", monospace; }
+
+    /* Custom styles for dropdown */
+    .dropdown-menu {
+      z-index: 60; /* Higher than modal backdrop for safety, though only one should be open */
+    }
+    
+    /* Print header - hidden by default, shown only in print */
+    .print-header {
+      display: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 font-sans">
+
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Print Header (only visible when printing) -->
+    <div class="print-header">
+      <img id="printLogo" src="" alt="Company Logo" class="print-logo" />
+      <h1 style="font-size: 24px; font-weight: bold; margin: 10px 0; color: #333;">PMs and Stat Testing Schedule Report</h1>
+      <p style="font-size: 12px; color: #666;" id="printDate"></p>
+    </div>
+
+    <!-- Header & Controls -->
+    <div class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 mb-6 border-t-4 border-indigo-600">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        
+        <!-- Logo and Title -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          <div id="logoContainer" class="cursor-pointer relative group" onclick="document.getElementById('logoInput').click()">
+            <img id="uploadedLogo" src="https://placehold.co/64x64/d0e0ff/333?text=LOGO" alt="Company Logo" class="h-14 w-14 sm:h-16 sm:w-16 object-contain rounded-full border-2 border-indigo-200 p-1" />
+            <input type="file" id="logoInput" accept="image/*" class="hidden" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <h1 class="text-xl sm:text-3xl font-extrabold text-gray-800">PMs and Stat Testing Schedule</h1>
+            <div class="flex gap-2 items-center no-print">
+              <label for="logoInput" class="text-indigo-500 hover:text-indigo-700 cursor-pointer text-xs sm:text-sm font-medium hover:underline">Change Logo</label>
+              <span class="text-gray-400">|</span>
+              <button onclick="removeLogo()" class="text-red-500 hover:text-red-700 cursor-pointer text-xs sm:text-sm font-medium hover:underline">Remove Logo</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex gap-2 flex-wrap justify-end no-print">
+          
+          <button id="importBtn" class="flex items-center px-3 py-2 text-sm bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition duration-150">
+            <i data-lucide="upload" class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2"></i> Import JSON
+          </button>
+          <input type="file" id="importFileInput" accept=".json" class="hidden" />
+
+          <button id="reminderSettingsBtn" class="flex items-center px-3 py-2 text-sm bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition duration-150">
+            <i data-lucide="mail" class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2"></i> Settings
+          </button>
+
+          <button id="startFreshBtn" class="flex items-center px-3 py-2 text-sm bg-orange-600 text-white font-semibold rounded-lg shadow-md hover:bg-orange-700 transition duration-150">
+            <i data-lucide="trash" class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2"></i> Start Fresh
+          </button>
+          
+          <button id="addClientBtn" class="flex items-center px-3 py-2 text-sm bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150">
+            <i data-lucide="user-plus" class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2"></i> Add Client
+          </button>
+
+          <!-- Export Dropdown -->
+          <div class="relative inline-block text-left" id="exportDropdownContainer">
+            <button id="exportDropdownBtn" class="flex items-center px-3 py-2 text-sm bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 transition duration-150" type="button">
+              <i data-lucide="download" class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2"></i> Export
+              <i data-lucide="chevron-down" class="w-4 h-4 ml-1"></i>
+            </button>
+            <div id="exportDropdownMenu" class="dropdown-menu absolute right-0 mt-2 w-48 rounded-lg shadow-xl bg-white ring-1 ring-black ring-opacity-5 hidden">
+              <div class="py-1">
+                <a href="#" onclick="event.preventDefault(); exportData('json')" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <i data-lucide="code" class="w-4 h-4 mr-2"></i> Export to JSON
+                </a>
+                <a href="#" onclick="event.preventDefault(); exportData('csv')" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <i data-lucide="list-ordered" class="w-4 h-4 mr-2"></i> Export to CSV
+                </a>
+                <a href="#" onclick="event.preventDefault(); exportData('aroflo')" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <i data-lucide="file-down" class="w-4 h-4 mr-2"></i> AROFLO CSV
+                </a>
+                <a href="#" onclick="event.preventDefault(); exportData('excel')" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i> Export to Excel (XML)
+                </a>
+                <a href="#" onclick="event.preventDefault(); exportData('pdf')" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t mt-1 pt-1">
+                  <i data-lucide="file-text" class="w-4 h-4 mr-2"></i> Print to PDF
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="mb-6 no-print">
+      <div class="relative">
+        <i data-lucide="search" class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+        <input type="text" id="searchInput" placeholder="Search by client name, job type, or task..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-xl shadow-inner focus:ring-indigo-500 focus:border-indigo-500 w-full" />
+      </div>
+    </div>
+
+    <!-- Help & Instructions Panel -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-indigo-600 p-4 rounded-lg mb-6 shadow-md no-print">
+      <div class="flex items-start gap-3">
+        <i data-lucide="info" class="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5"></i>
+        <div class="flex-1">
+          <h3 class="font-bold text-indigo-900 text-lg mb-2">Quick Guide & Important Reminder</h3>
+          
+          <!-- Save Reminder -->
+          <div class="bg-red-50 border border-red-200 rounded-md p-3 mb-3">
+            <p class="text-red-800 font-semibold text-sm flex items-center gap-2">
+              <i data-lucide="alert-circle" class="w-4 h-4"></i>
+              <span>⚠️ IMPORTANT: Remember to regularly save your database using the "Export/Save → Save Database" button to back up your data!</span>
+            </p>
+          </div>
+
+          <!-- Button Guide -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div class="bg-white rounded-md p-3 border border-gray-200">
+              <p class="font-semibold text-gray-800 mb-1">📄 Load Database</p>
+              <p class="text-gray-600 text-xs">Import a previously saved database file (.json) to restore your client records and scheduled tasks.</p>
+            </div>
+            
+            <div class="bg-white rounded-md p-3 border border-gray-200">
+              <p class="font-semibold text-gray-800 mb-1">⚙️ Settings</p>
+              <p class="text-gray-600 text-xs">Configure email addresses for reminder recipients. <strong>Note:</strong> This is for record-keeping only - the system does not send automated emails.</p>
+            </div>
+            
+            <div class="bg-white rounded-md p-3 border border-gray-200">
+              <p class="font-semibold text-gray-800 mb-1">➕ Add Client</p>
+              <p class="text-gray-600 text-xs">Add a new client to the system along with their scheduled PM and stat testing tasks.</p>
+            </div>
+            
+            <div class="bg-white rounded-md p-3 border border-gray-200">
+              <p class="font-semibold text-gray-800 mb-1">💾 Export/Save</p>
+              <p class="text-gray-600 text-xs">
+                <strong>Save Database:</strong> Backup all data to a .json file<br/>
+                <strong>Export to CSV/Excel:</strong> Create reports for viewing in spreadsheet programs<br/>
+                <strong>Print to PDF:</strong> Generate a professional printable report
+              </p>
+            </div>
+          </div>
+
+          <!-- Reminder Recipients Explanation -->
+          <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3 mt-3">
+            <p class="text-yellow-800 text-xs">
+              <strong>About Reminder Recipients:</strong> The email addresses you enter in Settings are stored for your reference and planning purposes only. This system <strong>does not automatically send emails</strong>. You'll need to manually send reminders to these recipients about upcoming tasks.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reminder Summary -->
+    <div id="reminderSummary" class="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-4 rounded-lg mb-6 shadow-md text-sm no-print">
+      <div class="flex items-start">
+        <i data-lucide="alert-triangle" class="w-5 h-5 mr-3 flex-shrink-0 mt-0.5"></i>
+        <div>
+          <p class="font-bold">Reminder Recipients:</p>
+          <p class="text-xs" id="recipientListDisplay">No recipients set. Click 'Settings' to configure email reminders.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="bg-white rounded-xl shadow-2xl overflow-x-auto border-2 border-gray-100">
+      <table id="taskTable" class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50 sticky top-0 z-10">
+          <tr>
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client Name</th>
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Type & Task</th>
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Test Completed</th>
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Due Date</th>
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Remaining</th>
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider no-print">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="taskTableBody" class="bg-white divide-y divide-gray-200 small-pt">
+          <!-- Table rows will be rendered here -->
+        </tbody>
+      </table>
+      <div id="noResults" class="hidden text-center p-8 text-gray-500">
+        <i data-lucide="folder-open" class="w-8 h-8 mx-auto mb-2"></i>
+        <p>No clients or tasks found matching your criteria.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Template for Form/Report/Error -->
+  <div id="modalBackdrop" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
+    <div id="modalContent" class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 transform transition-all scale-100 duration-300">
+      <!-- Modal content (form, settings, or confirmation) will be injected here -->
+    </div>
+  </div>
+
+
+<script>
+  // ====================================================================
+  // 1. GLOBAL STATE & TYPES
+  // ====================================================================
+
+  /** @typedef {'PM' | 'Stat Testing' | 'Maintenance'} JobType */
+  /** * @typedef {object} Task
+   * @property {string} id
+   * @property {JobType} type
+   * @property {string} details
+   * @property {string} lastCompleted - YYYY-MM-DD
+   * @property {string} nextDue - YYYY-MM-DD
+   */
+  /** * @typedef {object} Client
+   * @property {string} id
+   * @property {string} clientName
+   * @property {string} contactPerson
+   * @property {string} email
+   * @property {string} phone
+   * @property {Task[]} tasks
+   */
+  /** * @typedef {object} ScheduleData
+   * @property {Client[]} clients
+   * @property {string} logoBase64
+   * @property {string[]} reminderEmails
+   * @property {string} savedDate
+   */
+
+  /** @type {Client[]} */
+  let clients = [];
+  /** @type {string} */
+  let logoBase64 = '';
+  /** @type {string[]} */
+  let reminderEmails = [];
+  /** @type {string} */
+  let searchTerm = '';
+
+  // Modal State
+  let isModalOpen = false;
+  let currentClient = null; // Client | null
+  let isEditing = false;
+  let initialTaskIndex = -1; // Used to focus on a new task row in the form
+
+  // Confirmation State
+  /** @type {('client'|'task'|null)} */
+  let pendingDeleteType = null;
+  let pendingDeleteClientId = null;
+  let pendingDeleteTaskId = null;
+
+  // DOM Elements
+  const taskTableBody = document.getElementById('taskTableBody');
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const modalContent = document.getElementById('modalContent');
+  const logoInput = document.getElementById('logoInput');
+  const searchInput = document.getElementById('searchInput');
+
+  // ====================================================================
+  // 2. UTILITY FUNCTIONS
+  // ====================================================================
+
+  /**
+   * Generates a simple unique ID string.
+   * @returns {string}
+   */
+  function generateId() {
+    return 'id_' + Math.random().toString(36).substring(2, 9);
+  }
+
+  /**
+   * Formats a date string (YYYY-MM-DD) to a locale-friendly date string.
+   * @param {string} dateString
+   * @returns {string}
+   */
+  function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString.replace(/-/g, '/')); // Fix for cross-browser date parsing issues
+      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+      return 'Invalid Date';
+    }
+  }
+
+  /**
+   * Calculates the difference in days between today and a target date.
+   * @param {string} targetDateString - YYYY-MM-DD
+   * @returns {number}
+   */
+  function getDaysRemaining(targetDateString) {
+    if (!targetDateString) return Infinity;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today's date
+    
+    // Use targetDate.getTime() directly for consistency
+    const target = new Date(targetDateString.replace(/-/g, '/'));
+    target.setHours(0, 0, 0, 0);
+    
+    const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+    return Math.ceil((target.getTime() - today.getTime()) / _MS_PER_DAY);
+  }
+
+  /**
+   * Determines the status and returns styling classes.
+   * @param {number} days
+   * @returns {{statusText: string, statusClass: string}}
+   */
+  function getTaskStatus(days) {
+    if (days < 0) {
+      return { statusText: 'OVERDUE', statusClass: 'bg-red-100 text-red-700 font-bold border-red-300' };
+    } else {
+      return { statusText: 'IN DATE', statusClass: 'bg-green-100 text-green-700 font-semibold border-green-300' };
+    }
+  }
+
+  // ====================================================================
+  // 3. PERSISTENCE (Local Storage)
+  // ====================================================================
+
+  /**
+   * @returns {ScheduleData}
+   */
+  function getCurrentData() {
+    return {
+      clients,
+      logoBase64,
+      reminderEmails,
+      savedDate: new Date().toISOString()
+    };
+  }
+
+  function saveToLocalStorage() {
+    try {
+      localStorage.setItem("scheduleData", JSON.stringify(getCurrentData()));
+    } catch (err) {
+      console.error("Error saving data:", err);
+    }
+  }
+
+  function loadFromLocalStorage() {
+    try {
+      const saved = localStorage.getItem("scheduleData");
+      if (saved) {
+        /** @type {ScheduleData} */
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.clients)) {
+          clients = parsed.clients;
+        }
+        if (parsed.logoBase64) {
+          logoBase64 = parsed.logoBase64;
+        }
+        if (Array.isArray(parsed.reminderEmails)) {
+          reminderEmails = parsed.reminderEmails;
+        }
+      }
+    } catch (err) {
+      console.error("Error loading saved data:", err);
+    }
+  }
+
+  // Auto-save wrapper for all data mutations
+  function saveAndRender() {
+    saveToLocalStorage();
+    renderTable();
+    updateReminderSummary();
+  }
+
+  // ====================================================================
+  // 4. MODAL HANDLER
+  // ====================================================================
+
+  /**
+   * Opens a modal with custom HTML content.
+   * @param {string} title
+   * @param {string} innerHtml
+   */
+  function openModal(title, innerHtml) {
+    const modalHtml = `
+      <div class="flex justify-between items-center pb-3 border-b border-gray-200">
+        <h3 class="text-2xl font-semibold text-gray-900">${title}</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 rounded-full p-2 transition">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+      <div class="mt-4 max-h-[80vh] overflow-y-auto pr-2">
+        ${innerHtml}
+      </div>
+    `;
+    modalContent.innerHTML = modalHtml;
+    modalBackdrop.classList.remove('hidden');
+    isModalOpen = true;
+    if (window.lucide) { window.lucide.createIcons(); }
+  }
+
+  function closeModal() {
+    modalBackdrop.classList.add('hidden');
+    modalContent.innerHTML = '';
+    isModalOpen = false;
+    currentClient = null;
+    pendingDeleteType = null; // Clear confirmation state
+  }
+
+  // Close modal on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isModalOpen) {
+      closeModal();
+    }
+  });
+
+  // Close modal when clicking outside
+  modalBackdrop.addEventListener('click', (e) => {
+    if (e.target === modalBackdrop) {
+      closeModal();
+    }
+  });
+
+  // ====================================================================
+  // 5. CLIENT CRUD & RENDER FUNCTIONS
+  // ====================================================================
+
+  function renderHeaderLogo() {
+    const logoEl = document.getElementById("uploadedLogo");
+    if (logoEl) {
+      logoEl.src = logoBase64 || "https://placehold.co/64x64/d0e0ff/333?text=LOGO";
+    }
+  }
+
+  function updateReminderSummary() {
+    const displayEl = document.getElementById('recipientListDisplay');
+    if (displayEl) {
+        displayEl.innerHTML = reminderEmails.length > 0 
+            ? `<span class="mono">${reminderEmails.join(', ')}</span>`
+            : `No recipients set. Click 'Settings' to configure email reminders.`;
+    }
+  }
+
+  /**
+   * Renders the task table based on current data and search term.
+   */
+  function renderTable() {
+    console.log('Rendering table with clients:', clients);
+    const query = searchTerm.toLowerCase();
+    const filteredClients = clients.filter(client =>
+      client.clientName.toLowerCase().includes(query) ||
+      client.email.toLowerCase().includes(query) ||
+      client.tasks.some(task => task.type.toLowerCase().includes(query) || task.details.toLowerCase().includes(query))
+    );
+
+    taskTableBody.innerHTML = '';
+
+    if (filteredClients.length === 0) {
+      document.getElementById('noResults').classList.remove('hidden');
+      return;
+    } else {
+      document.getElementById('noResults').classList.add('hidden');
+    }
+
+    let rowsHtml = '';
+    filteredClients.forEach(client => {
+      if (client.tasks.length === 0) {
+        // Render client with no tasks
+        rowsHtml += createRowHtml(client, null, true);
+        return;
+      }
+
+      client.tasks.forEach((task, index) => {
+        const isFirstTask = index === 0;
+        rowsHtml += createRowHtml(client, task, isFirstTask);
+      });
+    });
+    
+    taskTableBody.innerHTML = rowsHtml;
+    
+    if (window.lucide) { window.lucide.createIcons(); }
+  }
+
+  /**
+   * Creates the HTML table row for a client/task.
+   * @param {Client} client
+   * @param {Task | null} task
+   * @param {boolean} isFirstTask
+   * @returns {string}
+   */
+  function createRowHtml(client, task, isFirstTask) {
+    const rowSpan = isFirstTask ? client.tasks.length || 1 : 0;
+    
+    let days = task ? getDaysRemaining(task.nextDue) : Infinity;
+    let status = getTaskStatus(days);
+    
+    // Escape single quotes in IDs for onclick handlers
+    const clientIdEscaped = String(client.id).replace(/'/g, "\\'");
+    const taskIdEscaped = task ? String(task.id).replace(/'/g, "\\'") : '';
+    
+    const clientInfoHtml = `
+      <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900" ${isFirstTask ? `rowspan="${rowSpan}"` : ''}>
+        <p class="font-semibold">${client.clientName}</p>
+        <p class="text-xs text-gray-500">${client.contactPerson || 'N/A'}</p>
+        <p class="text-xs text-gray-500">${client.email}</p>
+        <div class="mt-2 flex gap-2 no-print">
+          <button onclick="handleOpenForm('${clientIdEscaped}')" class="text-xs text-indigo-500 hover:underline border border-indigo-200 rounded-md px-2 py-0.5"><i data-lucide="edit-2" class="w-3 h-3 inline mr-1"></i> Edit Info</button>
+          <button onclick="confirmDeleteClient('${clientIdEscaped}')" class="text-xs text-red-500 hover:underline border border-red-200 rounded-md px-2 py-0.5"><i data-lucide="user-x" class="w-3 h-3 inline mr-1"></i> Delete</button>
+        </div>
+      </td>
+    `;
+
+    if (!task) {
+        // Row for client with no tasks
+        return `
+            <tr class="hover:bg-gray-50">
+                ${clientInfoHtml}
+                <td class="px-3 py-2 text-gray-400 italic" colspan="5">No tasks recorded.</td>
+                <td class="px-3 py-2 whitespace-nowrap text-center no-print">
+                    <button onclick="handleOpenForm('${clientIdEscaped}', true)" class="text-green-600 hover:text-green-800"><i data-lucide="plus" class="w-4 h-4 inline"></i> Add Task</button>
+                </td>
+            </tr>`;
+    }
+
+    const taskCells = `
+        <td class="px-3 py-2 text-gray-800">
+            <p class="font-medium">${task.type}</p>
+            <p class="text-xs text-gray-500">${task.details || 'N/A'}</p>
+        </td>
+        <td class="px-3 py-2 whitespace-nowrap text-gray-500 mono">${formatDate(task.lastCompleted)}</td>
+        <td class="px-3 py-2 whitespace-nowrap text-gray-500 mono">${formatDate(task.nextDue)}</td>
+        <td class="px-3 py-2 whitespace-nowrap text-center font-bold text-sm ${status.statusClass}">
+            ${days < 0 ? Math.abs(days) + ' days overdue' : (days === Infinity ? 'N/A' : days + ' days')}
+        </td>
+        <td class="px-3 py-2 whitespace-nowrap font-bold text-xs border-l-2 ${status.statusClass}">
+            ${status.statusText}
+        </td>
+        <td class="px-3 py-2 whitespace-nowrap text-center text-sm font-medium no-print">
+            <button onclick="handleOpenForm('${clientIdEscaped}', false, '${taskIdEscaped}')" class="text-blue-600 hover:text-blue-900 mr-2"><i data-lucide="edit-2" class="w-4 h-4 inline"></i></button>
+            <button onclick="confirmDeleteTask('${clientIdEscaped}', '${taskIdEscaped}')" class="text-red-600 hover:text-red-900"><i data-lucide="trash-2" class="w-4 h-4 inline"></i></button>
+        </td>
+    `;
+
+    if (isFirstTask) {
+      return `
+        <tr class="hover:bg-gray-50">
+          ${clientInfoHtml}
+          ${taskCells}
+        </tr>
+      `;
+    } else {
+      return `
+        <tr class="hover:bg-gray-50">
+          ${taskCells}
+        </tr>
+      `;
+    }
+  }
+
+  // ====================================================================
+  // 6. FORM & MODAL RENDERING (ClientFormModal)
+  // ====================================================================
+
+  /**
+   * Sets up state and opens the Client Form Modal.
+   * @param {string | null} clientId
+   * @param {boolean} [addTask=false]
+   * @param {string | null} [taskId=null]
+   */
+  function handleOpenForm(clientId, addTask = false, taskId = null) {
+      currentClient = clientId ? clients.find(c => c.id === clientId) : null;
+      isEditing = !!currentClient;
+      initialTaskIndex = addTask ? 0 : -1; // Indicate a new task row needs to be added or an existing one is being edited
+
+      renderForm();
+  }
+
+  function renderForm() {
+    const client = currentClient || {
+        id: generateId(),
+        clientName: '', contactPerson: '', email: '', phone: '',
+        tasks: []
+    };
+    
+    const tasks = client.tasks.map(task => ({...task})); // Deep copy tasks for editing
+
+    // If adding a task, ensure at least one empty row exists
+    if (initialTaskIndex !== -1 || tasks.length === 0) {
+        // Only add a new empty row if there are no tasks OR we explicitly requested to add one
+        if (tasks.length === 0 || initialTaskIndex !== -1) {
+            tasks.push({ id: generateId(), type: 'PM', details: '', lastCompleted: '', nextDue: '' });
+        }
+    }
+
+    const tasksHtml = tasks.map(task => createTaskInputHtml(task)).join('');
+
+    const innerHtml = `
+      <form id="clientForm">
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label for="clientName" class="block text-sm font-medium text-gray-700">Client Name</label>
+              <input type="text" id="clientName" value="${client.clientName}" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+            <div>
+              <label for="contactPerson" class="block text-sm font-medium text-gray-700">Contact Person</label>
+              <input type="text" id="contactPerson" value="${client.contactPerson || ''}" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+              <input type="email" id="email" value="${client.email}" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+            <div class="sm:col-span-2">
+              <label for="phone" class="block text-sm font-medium text-gray-700">Phone</label>
+              <input type="text" id="phone" value="${client.phone}" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" />
+            </div>
+          </div>
+
+          <div class="border-t pt-4">
+            <h4 class="text-xl font-bold text-gray-800 mb-3 flex justify-between items-center">
+                Scheduled Tasks
+                <button type="button" onclick="addTaskRowToForm()" class="text-xs flex items-center px-2 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                    <i data-lucide="plus" class="w-3 h-3 mr-1"></i> Add Task
+                </button>
+            </h4>
+            <div id="tasksContainer" class="space-y-4">
+              ${tasksHtml}
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-end gap-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 flex items-center">
+              <i data-lucide="save" class="w-5 h-5 mr-2"></i> ${isEditing ? 'Save Changes' : 'Add Client'}
+            </button>
+          </div>
+        </div>
+      </form>
+    `;
+    openModal(isEditing ? `Edit ${client.clientName}` : 'Add New Client', innerHtml);
+
+    document.getElementById('clientForm').onsubmit = (e) => {
+      e.preventDefault();
+      saveForm();
+    };
+  }
+
+  /**
+   * Generates the HTML for a single task input block.
+   * @param {Task} task
+   * @returns {string}
+   */
+  function createTaskInputHtml(task) {
+    const taskTypes = ['PM', 'Stat Testing', 'Maintenance'];
+    const optionsHtml = taskTypes.map(type => 
+        `<option value="${type}" ${task.type === type ? 'selected' : ''}>${type}</option>`
+    ).join('');
+
+    return `
+      <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 shadow-sm" data-task-id="${task.id}">
+        <input type="hidden" name="taskId" value="${task.id}" />
+        <div class="flex justify-end mb-2">
+            <button type="button" onclick="removeTaskInput(this)" class="text-red-500 hover:text-red-700 rounded-full p-1 transition" title="Remove Task">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-600">Job Type</label>
+            <select name="taskType" class="block w-full border border-gray-300 rounded-md p-1.5 text-sm" required>
+                ${optionsHtml}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600">Last Test Completed</label>
+            <input type="date" name="taskLastCompleted" value="${task.lastCompleted}" class="block w-full border border-gray-300 rounded-md p-1.5 text-sm" required />
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-medium text-gray-600">Task Details / Description</label>
+            <input type="text" name="taskDetails" value="${task.details}" placeholder="e.g. Fire Alarm Annual Test or Boiler Service" class="block w-full border border-gray-300 rounded-md p-1.5 text-sm" />
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-medium text-gray-600">Next Due Date</label>
+            <input type="date" name="taskNextDue" value="${task.nextDue}" class="block w-full border border-gray-300 rounded-md p-1.5 text-sm" required />
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function addTaskRowToForm() {
+    const tasksContainer = document.getElementById('tasksContainer');
+    if (tasksContainer) {
+      tasksContainer.insertAdjacentHTML('beforeend', createTaskInputHtml({ 
+        id: generateId(), 
+        type: 'PM', 
+        details: '', 
+        lastCompleted: new Date().toISOString().substring(0, 10), // default to today
+        nextDue: '' 
+      }));
+      if (window.lucide) { window.lucide.createIcons(); }
+    }
+  }
+
+  function removeTaskInput(button) {
+    const taskDiv = button.closest('[data-task-id]');
+    if (taskDiv) {
+      taskDiv.remove();
+    }
+  }
+
+  /**
+   * Handles form submission for adding/editing a client.
+   */
+  function saveForm() {
+    const form = document.getElementById('clientForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const clientName = form.querySelector('#clientName').value.trim();
+    const contactPerson = form.querySelector('#contactPerson').value.trim();
+    const email = form.querySelector('#email').value.trim();
+    const phone = form.querySelector('#phone').value.trim();
+    
+    const taskInputs = Array.from(form.querySelectorAll('[data-task-id]'));
+
+    /** @type {Task[]} */
+    const newTasks = taskInputs.map(taskDiv => ({
+      id: taskDiv.querySelector('[name="taskId"]').value,
+      type: taskDiv.querySelector('[name="taskType"]').value,
+      details: taskDiv.querySelector('[name="taskDetails"]').value.trim(),
+      lastCompleted: taskDiv.querySelector('[name="taskLastCompleted"]').value,
+      nextDue: taskDiv.querySelector('[name="taskNextDue"]').value,
+    })).filter(task => task.nextDue && task.lastCompleted); // Filter out tasks missing dates
+
+    let clientToSave = {
+        id: isEditing ? currentClient.id : generateId(),
+        clientName, contactPerson, email, phone,
+        tasks: newTasks,
+    };
+
+    if (isEditing) {
+      const clientIndex = clients.findIndex(c => c.id === clientToSave.id);
+      if (clientIndex !== -1) {
+        clients[clientIndex] = clientToSave;
+      }
+    } else {
+      clients.push(clientToSave);
+    }
+    
+    closeModal();
+    saveAndRender();
+  }
+
+  // ====================================================================
+  // 7. DELETION HANDLERS (ConfirmModal)
+  // ====================================================================
+
+  function confirmDeleteClient(clientId) {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+
+    pendingDeleteType = 'client';
+    pendingDeleteClientId = clientId;
+    
+    renderConfirmModal(
+        'Confirm Client Deletion',
+        `Are you sure you want to permanently delete **${client.clientName}** and all ${client.tasks.length} of their associated tasks? This cannot be undone.`
+    );
+  }
+
+  function confirmDeleteTask(clientId, taskId) {
+    const client = clients.find(c => c.id === clientId);
+    const task = client ? client.tasks.find(t => t.id === taskId) : null;
+    if (!client || !task) return;
+
+    pendingDeleteType = 'task';
+    pendingDeleteClientId = clientId;
+    pendingDeleteTaskId = taskId;
+    
+    renderConfirmModal(
+        'Confirm Task Deletion',
+        `Are you sure you want to delete the **${task.type}: ${task.details}** task for ${client.clientName}?`
+    );
+  }
+
+  function renderConfirmModal(title, message) {
+    const innerHtml = `
+        <div class="text-lg text-gray-700 mb-6">
+            <p>${message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>
+        </div>
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+            <button type="button" onclick="executePendingDelete()" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700">
+                Yes, Delete
+            </button>
+        </div>
+    `;
+    openModal(title, innerHtml);
+  }
+
+  function executePendingDelete() {
+    if (pendingDeleteType === 'client') {
+      const index = clients.findIndex(c => c.id === pendingDeleteClientId);
+      if (index !== -1) {
+        clients.splice(index, 1);
+      }
+    } else if (pendingDeleteType === 'task') {
+      const client = clients.find(c => c.id === pendingDeleteClientId);
+      if (client) {
+        client.tasks = client.tasks.filter(t => t.id !== pendingDeleteTaskId);
+      }
+    }
+    
+    closeModal();
+    saveAndRender();
+  }
+
+  // ====================================================================
+  // 8. REMINDER SETTINGS (ReminderSettingsModal)
+  // ====================================================================
+
+  function openReminderSettings() {
+    renderSettingsModal();
+  }
+
+  function renderSettingsModal() {
+    const innerHtml = `
+      <form id="reminderSettingsForm">
+        <h4 class="text-xl font-bold text-gray-800 mb-3">Email Reminder Recipients</h4>
+        <p class="text-sm text-gray-600 mb-4">Enter email addresses, separated by commas, who should receive reminder reports about upcoming tasks.</p>
+        
+        <div>
+          <label for="emailsInput" class="block text-sm font-medium text-gray-700">Recipient Emails</label>
+          <textarea id="emailsInput" rows="4" placeholder="manager@company.com, maintenance@company.com" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">${reminderEmails.join(', ')}</textarea>
+        </div>
+
+        <div class="pt-6 flex justify-end gap-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 flex items-center">
+              <i data-lucide="save" class="w-5 h-5 mr-2"></i> Save Settings
+            </button>
+        </div>
+      </form>
+    `;
+    openModal('Reminder Settings', innerHtml);
+
+    document.getElementById('reminderSettingsForm').onsubmit = (e) => {
+        e.preventDefault();
+        saveReminderSettings();
+    };
+  }
+
+  function saveReminderSettings() {
+    const form = document.getElementById('reminderSettingsForm');
+    const emailsText = form.querySelector('#emailsInput').value.trim();
+    
+    // Simple validation and sanitization
+    const newEmails = emailsText
+        .split(',')
+        .map(email => email.trim().toLowerCase())
+        .filter(email => email.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)); // Basic email regex
+
+    reminderEmails = newEmails;
+    closeModal();
+    saveAndRender(); // Save settings and update summary
+  }
+
+  // ====================================================================
+  // 9. START FRESH FUNCTIONALITY
+  // ====================================================================
+
+  function confirmStartFresh() {
+    const innerHtml = `
+        <div class="text-center mb-6">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4">
+                <i data-lucide="alert-triangle" class="w-6 h-6 text-orange-600"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Clear All Data?</h3>
+            <p class="text-gray-600">This will permanently delete:</p>
+            <ul class="text-left mt-3 space-y-1 text-sm text-gray-700">
+                <li class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-2 text-orange-600"></i> All ${clients.length} client records</li>
+                <li class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-2 text-orange-600"></i> All scheduled tasks</li>
+                <li class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-2 text-orange-600"></i> Reminder email settings</li>
+            </ul>
+            <p class="text-sm text-red-600 font-semibold mt-4">⚠️ This action cannot be undone!</p>
+            <p class="text-xs text-gray-500 mt-2">Consider exporting your data first as a backup.</p>
+        </div>
+        <div class="flex justify-center gap-3">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
+            <button type="button" onclick="executeStartFresh()" class="px-4 py-2 bg-orange-600 text-white font-semibold rounded-lg shadow-md hover:bg-orange-700 flex items-center">
+                <i data-lucide="trash" class="w-5 h-5 mr-2"></i> Yes, Clear All Data
+            </button>
+        </div>
+    `;
+    openModal('Start Fresh', innerHtml);
+  }
+
+  function executeStartFresh() {
+    // Clear all data
+    clients = [];
+    reminderEmails = [];
+    // Keep the logo - user can remove it separately if needed
+    
+    // Clear local storage
+    localStorage.removeItem('scheduleData');
+    
+    closeModal();
+    saveAndRender();
+    
+    // Show success message
+    setTimeout(() => {
+        openModal('Data Cleared', `
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i>
+                </div>
+                <p class="text-green-600 font-semibold">All data has been cleared successfully!</p>
+                <p class="text-sm text-gray-600 mt-2">You can now start fresh with new client records.</p>
+                <div class="mt-6">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        `);
+    }, 300);
+  }
+
+
+  // ====================================================================
+  // 10. IMPORT LOGIC
+  // ====================================================================
+
+  const importFileInput = document.getElementById('importFileInput');
+  document.getElementById('importBtn').onclick = () => {
+    importFileInput.click();
+  };
+
+  importFileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/json') {
+      openModal('Error', '<p class="text-red-600">Please select a valid JSON file.</p>');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        /** @type {ScheduleData} */
+        const importedData = JSON.parse(ev.target.result);
+        
+        if (!importedData.clients || !Array.isArray(importedData.clients)) {
+          openModal('Import Error', '<p class="text-red-600">JSON file is missing the required "clients" array.</p>');
+          return;
+        }
+
+        // Overwrite global state with imported data
+        clients = importedData.clients;
+        if (importedData.logoBase64) logoBase64 = importedData.logoBase64;
+        if (Array.isArray(importedData.reminderEmails)) reminderEmails = importedData.reminderEmails;
+
+        openModal('Import Successful', `<p class="text-green-600">Successfully imported ${clients.length} client records.</p>`);
+        saveAndRender();
+        renderHeaderLogo();
+      } catch (error) {
+        openModal('Import Error', `<p class="text-red-600">Failed to parse JSON content. Error: ${error.message}</p>`);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Clear file input
+  };
+
+
+  // ====================================================================
+  // 11. EXPORT LOGIC
+  // ====================================================================
+  
+  /**
+   * Universal function to trigger file download.
+   * @param {string} filename 
+   * @param {string} content 
+   * @param {string} mimeType 
+   */
+  function downloadFile(filename, content, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Escapes CSV field values
+   */
+  function escapeCsvValue(value) {
+    if (value === null || value === undefined) return '';
+    const strValue = String(value);
+    // If contains comma, quote, or newline, wrap in quotes and escape quotes
+    if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
+      return '"' + strValue.replace(/"/g, '""') + '"';
+    }
+    return strValue;
+  }
+
+  /**
+   * Prepares and exports data based on the requested format.
+   * @param {'json' | 'csv' | 'aroflo' | 'excel' | 'pdf'} format 
+   */
+  function exportData(format) {
+    document.getElementById('exportDropdownMenu').classList.add('hidden');
+
+    const timestamp = new Date().toISOString().substring(0, 10);
+    const filenameBase = `pm_schedule_${timestamp}`;
+
+    if (format === 'json') {
+      const dataToExport = getCurrentData();
+      downloadFile(`${filenameBase}.json`, JSON.stringify(dataToExport, null, 2), 'application/json');
+    } else if (format === 'csv') {
+      const reportData = clients.flatMap(client => 
+          client.tasks.length > 0
+              ? client.tasks.map(task => ({ 
+                  'Client Name': client.clientName,
+                  'Contact Person': client.contactPerson || 'N/A',
+                  'Contact Number': client.phone || 'N/A',
+                  'Job Type': task.type,
+                  'Task Details': task.details || 'N/A',
+                  'Last Test Completed': task.lastCompleted,
+                  'Next Due Date': task.nextDue,
+                  'Status': getTaskStatus(getDaysRemaining(task.nextDue)).statusText,
+              }))
+              : [{ // Client with no tasks
+                  'Client Name': client.clientName,
+                  'Contact Person': client.contactPerson || 'N/A',
+                  'Contact Number': client.phone || 'N/A',
+                  'Job Type': 'N/A',
+                  'Task Details': 'N/A',
+                  'Last Test Completed': 'N/A',
+                  'Next Due Date': 'N/A',
+                  'Status': 'N/A',
+              }]
+      );
+      const csv = convertToCsv(reportData);
+      downloadFile(`${filenameBase}.csv`, csv, 'text/csv;charset=utf-8;');
+    } else if (format === 'aroflo') {
+      const currentDate = new Date().toISOString().substring(0, 10);
+      const arofloData = clients.flatMap(client => 
+          client.tasks.length > 0
+              ? client.tasks.map(task => ({
+                  'Client': client.clientName,
+                  'Task': task.details || 'N/A',
+                  'Task Type': 'Electrical',
+                  'Asset': '',
+                  'Assigned To': '',
+                  'Cust ON': '',
+                  'Location': '',
+                  'Priority Short Description': '',
+                  'Project': '',
+                  'Stage': '',
+                  'Contact Name': '',
+                  'Contact Phone': '',
+                  'Description': `${task.type} - ${task.details || 'N/A'}`,
+                  'Due_Date': task.nextDue,
+                  'Requested_Date': currentDate,
+                  'Custom Field 1': '',
+                  'Custom Field 2': ''
+              }))
+              : []
+      );
+      const csv = convertToCsv(arofloData);
+      downloadFile(`aroflo_import_${timestamp}.csv`, csv, 'text/csv;charset=utf-8;');
+    } else if (format === 'excel') {
+      const reportData = clients.flatMap(client => 
+          client.tasks.length > 0
+              ? client.tasks.map(task => ({ 
+                  'Client Name': client.clientName,
+                  'Contact Person': client.contactPerson || 'N/A',
+                  'Contact Number': client.phone || 'N/A',
+                  'Job Type': task.type,
+                  'Task Details': task.details || 'N/A',
+                  'Last Test Completed': task.lastCompleted,
+                  'Next Due Date': task.nextDue,
+                  'Status': getTaskStatus(getDaysRemaining(task.nextDue)).statusText,
+              }))
+              : [{ // Client with no tasks
+                  'Client Name': client.clientName,
+                  'Contact Person': client.contactPerson || 'N/A',
+                  'Contact Number': client.phone || 'N/A',
+                  'Job Type': 'N/A',
+                  'Task Details': 'N/A',
+                  'Last Test Completed': 'N/A',
+                  'Next Due Date': 'N/A',
+                  'Status': 'N/A',
+              }]
+      );
+      const xml = convertToExcelXml(reportData);
+      downloadFile(`${filenameBase}.xls`, xml, 'application/vnd.ms-excel');
+    } else if (format === 'pdf') {
+      // Update print header with logo and date before printing
+      const printLogo = document.getElementById('printLogo');
+      const printDate = document.getElementById('printDate');
+      if (printLogo) {
+        printLogo.src = logoBase64 || "https://placehold.co/120x120/d0e0ff/333?text=LOGO";
+      }
+      if (printDate) {
+        const now = new Date();
+        printDate.textContent = `Generated on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
+      }
+      window.print();
+    }
+  }
+
+  /**
+   * Converts array of objects to CSV string.
+   * @param {object[]} data 
+   * @returns {string}
+   */
+  function convertToCsv(data) {
+    if (data.length === 0) return '';
+    const headers = Object.keys(data[0]);
+    const csvRows = [
+        headers.map(h => escapeCsvValue(h)).join(','), // Headers
+        ...data.map(row => 
+            headers.map(fieldName => escapeCsvValue(row[fieldName])).join(',')
+        )
+    ];
+    return csvRows.join('\r\n');
+  }
+
+  /**
+   * Converts array of objects to Excel-readable XML format (HTML table format that Excel accepts).
+   * @param {object[]} data 
+   * @returns {string}
+   */
+  function convertToExcelXml(data) {
+    if (data.length === 0) {
+      return '<html><body><table><tr><td>No data</td></tr></table></body></html>';
+    }
+    
+    const headers = Object.keys(data[0]);
+    
+    // Escape HTML special characters
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">\n';
+    html += '<head>\n';
+    html += '<meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">\n';
+    html += '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>\n';
+    html += '<x:Name>Schedule</x:Name>\n';
+    html += '<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>\n';
+    html += '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->\n';
+    html += '<style>\n';
+    html += 'table { border-collapse: collapse; width: 100%; }\n';
+    html += 'th { background-color: #4472C4; color: white; font-weight: bold; padding: 8px; text-align: left; border: 1px solid #ddd; }\n';
+    html += 'td { padding: 8px; text-align: left; border: 1px solid #ddd; }\n';
+    html += '.status-overdue { color: #C00000; font-weight: bold; }\n';
+    html += '.status-indate { color: #006600; font-weight: bold; }\n';
+    html += '</style>\n';
+    html += '</head>\n';
+    html += '<body>\n';
+    html += '<table>\n';
+    
+    // Header row
+    html += '<tr>\n';
+    headers.forEach(h => {
+      html += `<th>${escapeHtml(h)}</th>\n`;
+    });
+    html += '</tr>\n';
+
+    // Data rows
+    data.forEach(row => {
+      html += '<tr>\n';
+      headers.forEach(header => {
+        let value = row[header];
+        let cellClass = '';
+        
+        // Apply styling for Status column
+        if (header === 'Status') {
+          if (value === 'OVERDUE') {
+            cellClass = ' class="status-overdue"';
+          } else if (value === 'IN DATE') {
+            cellClass = ' class="status-indate"';
+          }
+        }
+        
+        html += `<td${cellClass}>${escapeHtml(value)}</td>\n`;
+      });
+      html += '</tr>\n';
+    });
+
+    html += '</table>\n';
+    html += '</body>\n';
+    html += '</html>';
+    
+    return html;
+  }
+
+  // ====================================================================
+  // 12. EVENT LISTENERS & INITIALIZATION
+  // ====================================================================
+
+  // Client/Task Add Button
+  document.getElementById('addClientBtn').onclick = () => handleOpenForm(null);
+
+  // Reminder Settings Button
+  document.getElementById('reminderSettingsBtn').onclick = openReminderSettings;
+
+  // Start Fresh Button
+  document.getElementById('startFreshBtn').onclick = confirmStartFresh;
+
+  // Search Input Handler
+  searchInput.oninput = (e) => {
+    searchTerm = e.target.value;
+    renderTable();
+  };
+
+  // Logo upload handling
+  logoInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      logoBase64 = ev.target.result;
+      renderHeaderLogo();
+      saveToLocalStorage();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Logo removal handling
+  function removeLogo() {
+    logoBase64 = '';
+    renderHeaderLogo();
+    saveToLocalStorage();
+  }
+
+  // Dropdown Toggle
+  document.getElementById('exportDropdownBtn').onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById('exportDropdownMenu').classList.toggle('hidden');
+  };
+
+  // Close dropdown when clicking anywhere else
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('exportDropdownContainer').contains(e.target)) {
+      document.getElementById('exportDropdownMenu').classList.add('hidden');
+    }
+  });
+
+
+  // Initial Load
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded');
+    loadFromLocalStorage();
+    console.log('After loading, clients:', clients);
+    
+    // Add some initial dummy data if storage is empty for quick start
+    if (clients.length === 0) {
+      console.log('No clients found, adding sample data');
+      clients = [
+        {
+          id: generateId(),
+          clientName: 'ABC Manufacturing Ltd', contactPerson: 'John Smith', email: 'john@abcmfg.com', phone: '555-0101',
+          tasks: [
+            { id: generateId(), type: 'PM', details: 'Annual Fire Alarm Test', lastCompleted: '2024-01-15', nextDue: '2025-01-15' },
+            { id: generateId(), type: 'Stat Testing', details: 'Emergency Lighting Test', lastCompleted: '2024-10-18', nextDue: '2024-11-18' }
+          ]
+        },
+        {
+          id: generateId(),
+          clientName: 'XYZ Office Complex', contactPerson: 'Sarah Johnson', email: 'sarah@xyzoffice.com', phone: '555-0102',
+          tasks: [
+            { id: generateId(), type: 'Maintenance', details: 'HVAC System Service', lastCompleted: '2023-10-01', nextDue: '2024-10-01' }
+          ]
+        },
+        {
+          id: generateId(),
+          clientName: 'Local School District', contactPerson: 'Mike Brown', email: 'mike@schooldistrict.edu', phone: '555-0103',
+          tasks: []
+        }
+      ];
+      saveToLocalStorage();
+      console.log('Sample data added');
+    }
+    
+    if (window.lucide) { window.lucide.createIcons(); }
+    renderHeaderLogo();
+    updateReminderSummary();
+    renderTable();
+    console.log('Initial render complete');
+  });
+
+</script>
+</body>
+</html>
