@@ -262,14 +262,14 @@
           <div class="bg-red-50 border border-red-200 rounded-md p-3 mb-3">
             <p class="text-red-800 font-semibold text-sm flex items-center gap-2">
               <i data-lucide="alert-circle" class="w-4 h-4"></i>
-              <span>⚠️ IMPORTANT: Remember to regularly save your database using the "Export → Export to JSON" button to back up your data!</span>
+              <span>⚠️ IMPORTANT: Remember to regularly save your database using the "Export → Save Schedule Data" button to back up your data!</span>
             </p>
           </div>
 
           <!-- Button Guide -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div class="bg-white rounded-md p-3 border border-gray-200">
-              <p class="font-semibold text-gray-800 mb-1">🔄 Import JSON</p>
+              <p class="font-semibold text-gray-800 mb-1">📄 Load Schedule Data</p>
               <p class="text-gray-600 text-xs">Import a previously saved database file (.json) to restore your client records and scheduled tasks.</p>
             </div>
             
@@ -290,6 +290,11 @@
                 <strong>Export to CSV/Excel:</strong> Create reports for viewing in spreadsheet programs<br/>
                 <strong>Print to PDF:</strong> Generate a professional printable report
               </p>
+            </div>
+            
+            <div class="bg-white rounded-md p-3 border border-green-200 bg-green-50">
+              <p class="font-semibold text-green-800 mb-1">✅ Quick Update (NEW!)</p>
+              <p class="text-gray-600 text-xs">Click the green checkmark icon next to any task to quickly update completion dates without opening the full edit form.</p>
             </div>
           </div>
 
@@ -626,8 +631,9 @@
         ${status.statusText}
       </td>
       <td class="px-3 py-2 whitespace-nowrap text-center text-sm font-medium no-print">
-        <button onclick="handleOpenForm('${clientIdEscaped}', false, '${taskIdEscaped}')" class="text-blue-600 hover:text-blue-900 mr-2"><i data-lucide="edit-2" class="w-4 h-4 inline"></i></button>
-        <button onclick="confirmDeleteTask('${clientIdEscaped}', '${taskIdEscaped}')" class="text-red-600 hover:text-red-900"><i data-lucide="trash-2" class="w-4 h-4 inline"></i></button>
+        <button onclick="openUpdateTaskModal('${clientIdEscaped}', '${taskIdEscaped}')" class="text-green-600 hover:text-green-900 mr-2" title="Update Task"><i data-lucide="check-circle" class="w-4 h-4 inline"></i></button>
+        <button onclick="handleOpenForm('${clientIdEscaped}', false, '${taskIdEscaped}')" class="text-blue-600 hover:text-blue-900 mr-2" title="Edit Task"><i data-lucide="edit-2" class="w-4 h-4 inline"></i></button>
+        <button onclick="confirmDeleteTask('${clientIdEscaped}', '${taskIdEscaped}')" class="text-red-600 hover:text-red-900" title="Delete Task"><i data-lucide="trash-2" class="w-4 h-4 inline"></i></button>
       </td>
     `;
 
@@ -874,7 +880,197 @@
   }
 
   // ====================================================================
-  // 8. EMAIL REMINDER FUNCTIONS
+  // 8. UPDATE TASK MODAL
+  // ====================================================================
+
+  function openUpdateTaskModal(clientId, taskId) {
+    const client = clients.find(c => c.id === clientId);
+    const task = client ? client.tasks.find(t => t.id === taskId) : null;
+    
+    if (!client || !task) {
+      console.error('Client or task not found');
+      return;
+    }
+
+    // Calculate the interval (in days) from last completion to next due
+    const lastCompletedDate = new Date(task.lastCompleted.replace(/-/g, '/'));
+    const nextDueDate = new Date(task.nextDue.replace(/-/g, '/'));
+    const intervalDays = Math.round((nextDueDate - lastCompletedDate) / (1000 * 60 * 60 * 24));
+    
+    // Default new completion date to today
+    const today = new Date().toISOString().substring(0, 10);
+    
+    // Calculate suggested next due date (today + interval)
+    const suggestedNextDue = new Date();
+    suggestedNextDue.setDate(suggestedNextDue.getDate() + intervalDays);
+    const suggestedNextDueStr = suggestedNextDue.toISOString().substring(0, 10);
+
+    const innerHtml = `
+      <form id="updateTaskForm">
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200 mb-4">
+          <div class="flex items-start gap-3">
+            <i data-lucide="info" class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <h4 class="font-bold text-green-900 text-sm mb-1">Quick Task Update</h4>
+              <p class="text-xs text-green-700">Update this task's completion date and set the next due date.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Current Task Info -->
+          <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <p class="text-sm font-semibold text-gray-700 mb-2">Current Task Details:</p>
+            <div class="text-xs text-gray-600 space-y-1">
+              <p><strong>Client:</strong> ${client.clientName}</p>
+              <p><strong>Task Type:</strong> ${task.type}</p>
+              <p><strong>Task Details:</strong> ${task.details || 'N/A'}</p>
+              <p><strong>Previous Completion:</strong> ${formatDate(task.lastCompleted)}</p>
+              <p><strong>Current Due Date:</strong> ${formatDate(task.nextDue)}</p>
+              <p class="text-indigo-600 font-semibold pt-1 border-t border-gray-300 mt-2">
+                <i data-lucide="calendar" class="w-3 h-3 inline"></i> Interval: ${intervalDays} days
+              </p>
+            </div>
+          </div>
+
+          <!-- New Completion Date -->
+          <div>
+            <label for="newCompletionDate" class="block text-sm font-medium text-gray-700 mb-1">
+              New Completion Date <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="date" 
+              id="newCompletionDate" 
+              value="${today}" 
+              required 
+              max="${today}"
+              class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-green-500 focus:border-green-500" 
+            />
+            <p class="text-xs text-gray-500 mt-1">When was this task completed?</p>
+          </div>
+
+          <!-- Next Due Date -->
+          <div>
+            <label for="newNextDueDate" class="block text-sm font-medium text-gray-700 mb-1">
+              Next Due Date <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="date" 
+              id="newNextDueDate" 
+              value="${suggestedNextDueStr}" 
+              required 
+              class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-green-500 focus:border-green-500" 
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              Suggested: ${formatDate(suggestedNextDueStr)} (${intervalDays} days from completion)
+            </p>
+          </div>
+
+          <!-- Auto-calculate checkbox -->
+          <div class="flex items-center gap-2 bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+            <input 
+              type="checkbox" 
+              id="autoCalculateNextDue" 
+              checked 
+              class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+            />
+            <label for="autoCalculateNextDue" class="text-xs text-indigo-800">
+              <i data-lucide="calculator" class="w-3 h-3 inline"></i> 
+              Auto-calculate next due date based on ${intervalDays}-day interval
+            </label>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="pt-4 flex justify-end gap-3 border-t">
+            <button 
+              type="button" 
+              onclick="closeModal()" 
+              class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 flex items-center"
+            >
+              <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Update Task
+            </button>
+          </div>
+        </div>
+      </form>
+    `;
+
+    openModal(`Update Task: ${task.type}`, innerHtml);
+
+    // Add event listeners for auto-calculation
+    const completionInput = document.getElementById('newCompletionDate');
+    const nextDueInput = document.getElementById('newNextDueDate');
+    const autoCalcCheckbox = document.getElementById('autoCalculateNextDue');
+
+    completionInput.addEventListener('change', () => {
+      if (autoCalcCheckbox.checked) {
+        const completionDate = new Date(completionInput.value);
+        completionDate.setDate(completionDate.getDate() + intervalDays);
+        nextDueInput.value = completionDate.toISOString().substring(0, 10);
+      }
+    });
+
+    autoCalcCheckbox.addEventListener('change', () => {
+      if (autoCalcCheckbox.checked) {
+        const completionDate = new Date(completionInput.value);
+        completionDate.setDate(completionDate.getDate() + intervalDays);
+        nextDueInput.value = completionDate.toISOString().substring(0, 10);
+      }
+    });
+
+    // Handle form submission
+    document.getElementById('updateTaskForm').onsubmit = (e) => {
+      e.preventDefault();
+      
+      const newCompletionDate = completionInput.value;
+      const newNextDueDate = nextDueInput.value;
+
+      if (!newCompletionDate || !newNextDueDate) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+
+      // Validate that next due date is after completion date
+      if (new Date(newNextDueDate) <= new Date(newCompletionDate)) {
+        alert('Next due date must be after the completion date.');
+        return;
+      }
+
+      // Update the task
+      task.lastCompleted = newCompletionDate;
+      task.nextDue = newNextDueDate;
+
+      closeModal();
+      saveAndRender();
+
+      // Show success message
+      setTimeout(() => {
+        openModal('Task Updated Successfully', `
+          <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+              <i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i>
+            </div>
+            <p class="text-green-600 font-semibold mb-2">Task updated successfully!</p>
+            <div class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg space-y-1">
+              <p><strong>Completion Date:</strong> ${formatDate(newCompletionDate)}</p>
+              <p><strong>Next Due Date:</strong> ${formatDate(newNextDueDate)}</p>
+            </div>
+            <div class="mt-6">
+              <button type="button" onclick="closeModal()" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700">Close</button>
+            </div>
+          </div>
+        `);
+      }, 300);
+    };
+  }
+
+  // ====================================================================
+  // 9. EMAIL REMINDER FUNCTIONS
   // ====================================================================
 
   function getTasksNeedingReminders() {
@@ -918,20 +1114,6 @@
       content += `⚠️ OVERDUE TASKS (${overdue.length})\n`;
       content += '------------------------------------------------------------\n';
       overdue.forEach((task, index) => {
-        content += `\n${index + 1}. ${task.clientName}\n`;
-        content += `   Task: ${task.taskType} - ${task.taskDetails || 'N/A'}\n`;
-        content += `   Contact: ${task.contactPerson || 'N/A'} (${task.email})\n`;
-        content += `   Last Completed: ${task.lastCompleted}\n`;
-        content += `   Due Date: ${task.nextDue}\n`;
-        content += `   Status: ${Math.abs(task.daysRemaining)} days OVERDUE\n`;
-      });
-      content += '\n';
-    }
-
-    if (dueSoon.length > 0) {
-      content += `📅 UPCOMING TASKS - DUE WITHIN 14 DAYS (${dueSoon.length})\n`;
-      content += '------------------------------------------------------------\n';
-      dueSoon.forEach((task, index) => {
         content += `\n${index + 1}. ${task.clientName}\n`;
         content += `   Task: ${task.taskType} - ${task.taskDetails || 'N/A'}\n`;
         content += `   Contact: ${task.contactPerson || 'N/A'} (${task.email})\n`;
@@ -1166,7 +1348,7 @@
   }
 
   // ====================================================================
-  // 9. REMINDER SETTINGS
+  // 10. REMINDER SETTINGS
   // ====================================================================
 
   function openReminderSettings() {
@@ -1273,7 +1455,7 @@
 
         <!-- Step 1 -->
         <div class="border-l-4 border-indigo-500 pl-4">
-          <h5 class="font-bold text-gray-800 mb-2">📝 Step 1: Create a Free EmailJS Account</h5>
+          <h5 class="font-bold text-gray-800 mb-2">🔐 Step 1: Create a Free EmailJS Account</h5>
           <p class="text-sm text-gray-700 mb-2">Go to <a href="https://www.emailjs.com" target="_blank" class="text-indigo-600 hover:underline font-semibold">https://www.emailjs.com</a> and sign up for a free account.</p>
           <div class="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-800">
             <strong>✓ Free Plan Includes:</strong> 200 emails per month - perfect for small businesses!
@@ -1359,7 +1541,7 @@
   }
 
   // ====================================================================
-  // 10. START FRESH FUNCTIONALITY
+  // 11. START FRESH FUNCTIONALITY
   // ====================================================================
 
   function confirmStartFresh() {
@@ -1411,7 +1593,7 @@
   }
 
   // ====================================================================
-  // 11. IMPORT LOGIC
+  // 12. IMPORT LOGIC
   // ====================================================================
 
   const importFileInput = document.getElementById('importFileInput');
@@ -1458,7 +1640,7 @@
   };
 
   // ====================================================================
-  // 12. EXPORT LOGIC
+  // 13. EXPORT LOGIC
   // ====================================================================
   
   function downloadFile(filename, content, mimeType) {
@@ -1721,7 +1903,7 @@
   }
 
   // ====================================================================
-  // 13. EVENT LISTENERS & INITIALIZATION
+  // 14. EVENT LISTENERS & INITIALIZATION
   // ====================================================================
 
   document.getElementById('addClientBtn').onclick = () => handleOpenForm(null);
@@ -1838,4 +2020,4 @@
 
 </script>
 </body>
-</html>
+</html>)
